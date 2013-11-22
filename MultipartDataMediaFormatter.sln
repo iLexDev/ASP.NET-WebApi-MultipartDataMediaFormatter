@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultipartDataMediaFormatter.Tests", "test\MultipartDataMediaFormatter.Tests\MultipartDataMediaFormatter.Tests.csproj", "{346BD9BC-1EB3-4B74-8468-E86E29018C67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultipartDataMediaFormatter", "src\MultipartDataMediaFormatter\MultipartDataMediaFormatter.csproj", "{1F851995-9C6B-4B34-82AF-AC4E075F00C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{9EB9640F-9380-4FBB-A390-36FFD844146D}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{346BD9BC-1EB3-4B74-8468-E86E29018C67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{346BD9BC-1EB3-4B74-8468-E86E29018C67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{346BD9BC-1EB3-4B74-8468-E86E29018C67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{346BD9BC-1EB3-4B74-8468-E86E29018C67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F851995-9C6B-4B34-82AF-AC4E075F00C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F851995-9C6B-4B34-82AF-AC4E075F00C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F851995-9C6B-4B34-82AF-AC4E075F00C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F851995-9C6B-4B34-82AF-AC4E075F00C2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
