@@ -1,4 +1,4 @@
-ASP.NET WebApi FormMultipartEncodedMediaTypeFormatter
+ASP.NET WebApi MultipartDataMediaFormatter
 =============
 
 This is solution for automatic binding action parameters of custom types (including files) encoded as multipart/form-data. It works similar to ASP.NET MVC binding. This media type formatter can be used also for sending objects (using HttpClient) with automatic serialization to multipart/form-data.   
