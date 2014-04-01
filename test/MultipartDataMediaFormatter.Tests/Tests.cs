@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using KellermanSoftware.CompareNetObjects;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MultipartDataMediaFormatter.Infrastructure;
@@ -19,10 +20,10 @@ namespace MultipartDataMediaFormatter.Tests
         public void TestInit()
         {
             //need for correct comparing validation messages
-            var enCulture = System.Globalization.CultureInfo.GetCultureInfo( "en-US" );
+            var enCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
             System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = enCulture;
-            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = enCulture;        
-        }        
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = enCulture;
+        }
 
         [TestMethod]
         public void TestComplexModelPost()
@@ -33,7 +34,8 @@ namespace MultipartDataMediaFormatter.Tests
         [TestMethod]
         public void TestComplexModelWithValidationErrorsPost()
         {
-            TestPost(PreparePersonModelWithValidationErrors(), "TestApi/PostPerson", "The LastName field is required. The Photo field is required. The GenericValue field is required.");
+            TestPost(PreparePersonModelWithValidationErrors(), "TestApi/PostPerson",
+                "The LastName field is required. The Photo field is required. The GenericValue field is required.");
         }
 
         [TestMethod]
@@ -41,7 +43,7 @@ namespace MultipartDataMediaFormatter.Tests
         {
             TestPost(PreparePersonModel(), "TestApi/PostPersonBindRawFormData");
         }
-        
+
         [TestMethod]
         public void TestFilePost()
         {
@@ -53,7 +55,7 @@ namespace MultipartDataMediaFormatter.Tests
         {
             TestPost(PrepareFileModel(), "TestApi/PostFileBindRawFormData");
         }
-        
+
 
         [TestMethod]
         public void TestStringPost()
@@ -66,12 +68,25 @@ namespace MultipartDataMediaFormatter.Tests
         {
             TestPost(PrepareStringModel(), "TestApi/PostStringBindRawFormData");
         }
-        
+
 
         [TestMethod]
         public void TestFormDataPost()
         {
             TestPost(PrepareFormDataModel(), "TestApi/PostFormData");
+        }
+
+        [TestMethod]
+        public void TestPostWithoutFormatter()
+        {
+            PersonModel model;
+            var httpContent = PreparePersonModelHttpContent(out model);
+
+            var result = PostPersonModelHttpContent(httpContent);
+
+            Assert.IsTrue(String.IsNullOrWhiteSpace(result.ErrorMessage), result.ErrorMessage);
+
+            AssertModelsEquals(model, result.Value);
         }
 
         private ApiResult<T> TestPost<T>(T model, string url, string errorMessage = null)
@@ -112,6 +127,24 @@ namespace MultipartDataMediaFormatter.Tests
                     Assert.Fail(err);
                 }
                 var resultModel = response.Content.ReadAsAsync<ApiResult<T>>(new[] { mediaTypeFormatter }).Result;
+                return resultModel;
+            }
+        }
+
+        private ApiResult<PersonModel> PostPersonModelHttpContent(HttpContent httpContent)
+        {
+            var mediaTypeFormatter = new FormMultipartEncodedMediaTypeFormatter();
+
+            using (new WebApiHttpServer(BaseApiAddress, mediaTypeFormatter))
+            using (var client = CreateHttpClient(BaseApiAddress))
+            using (HttpResponseMessage response = client.PostAsync("TestApi/PostPerson", httpContent).Result)
+            {
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    var err = response.Content.ReadAsStringAsync().Result;
+                    Assert.Fail(err);
+                }
+                var resultModel = response.Content.ReadAsAsync<ApiResult<PersonModel>>(new[] { mediaTypeFormatter }).Result;
                 return resultModel;
             }
         }
@@ -179,6 +212,32 @@ namespace MultipartDataMediaFormatter.Tests
         private string PrepareStringModel()
         {
             return "some big text";
+        }
+
+        private HttpContent PreparePersonModelHttpContent(out PersonModel personModel)
+        {
+            personModel = new PersonModel()
+            {
+                FirstName = "First",
+                LastName = "Last",
+                Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 })
+            };
+
+            var httpContent = new MultipartFormDataContent("testnewboundary");
+
+            httpContent.Add(new StringContent(personModel.LastName), "LastName");
+            httpContent.Add(new StringContent(personModel.FirstName), "FirstName");
+
+            var fileContent = new ByteArrayContent(personModel.Photo.Buffer);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(personModel.Photo.MediaType);
+            fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+            {
+                FileName = personModel.Photo.FileName,
+                Name = "Photo"
+            };
+            httpContent.Add(fileContent);
+
+            return httpContent;
         }
 
         private HttpClient CreateHttpClient(string baseUrl)
