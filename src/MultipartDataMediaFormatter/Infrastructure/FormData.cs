@@ -37,6 +37,11 @@ namespace MultipartDataMediaFormatter.Infrastructure
             }
         }
 
+        public IEnumerable<string> AllKeys()
+        {
+            return Fields.Select(m => m.Name).Union(Files.Select(m => m.Name));
+        }
+
         public void Add(string name, string value)
         {
             Fields.Add(new ValueString() { Name = name, Value = value});

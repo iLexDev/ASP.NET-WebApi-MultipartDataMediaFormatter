@@ -40,6 +40,8 @@ namespace MultipartDataMediaFormatter.Tests.Models
         public List<HttpFile> Attachments { get; set; }
 
         public SomeValue<PersonProperty> SomeGenericProperty { get; set; }
+
+        public List<PersonModel> ConnectedPersons { get; set; }
     }
 
     public class PersonProperty

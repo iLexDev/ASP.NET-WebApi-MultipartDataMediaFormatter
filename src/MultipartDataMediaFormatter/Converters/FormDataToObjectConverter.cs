@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using MultipartDataMediaFormatter.Infrastructure;
 using MultipartDataMediaFormatter.Infrastructure.Extensions;
@@ -39,7 +40,7 @@ namespace MultipartDataMediaFormatter.Converters
         private object CreateObject(Type destinitionType, string propertyName = "")
         {
             object propValue = null;
-
+            
             object buf;
             if (TryGetFromFormData(destinitionType, propertyName, out buf)
                 || TryGetAsGenericDictionary(destinitionType, propertyName, out buf)
@@ -199,21 +200,25 @@ namespace MultipartDataMediaFormatter.Converters
             bool isCustomNonEnumerableType = destinitionType.IsCustomNonEnumerableType();
             if (isCustomNonEnumerableType)
             {
-                var obj = Activator.CreateInstance(destinitionType);
-                bool isFilled = false;
-                foreach (PropertyInfo propertyInfo in destinitionType.GetPublicAccessibleProperties())
+                if (String.IsNullOrWhiteSpace(propertyName)
+                    || SourceData.AllKeys().Any(m => m.StartsWith(propertyName + ".", StringComparison.CurrentCultureIgnoreCase)))
                 {
-                    var propName = (!String.IsNullOrEmpty(propertyName) ? propertyName + "." : "") + propertyInfo.Name;
-                    var objValue = CreateObject(propertyInfo.PropertyType, propName);
-                    if (objValue != null)
+                    var obj = Activator.CreateInstance(destinitionType);
+                    bool isFilled = false;
+                    foreach (PropertyInfo propertyInfo in destinitionType.GetPublicAccessibleProperties())
                     {
-                        propertyInfo.SetValue(obj, objValue);
-                        isFilled = true;
+                        var propName = (!String.IsNullOrEmpty(propertyName) ? propertyName + "." : "") + propertyInfo.Name;
+                        var objValue = CreateObject(propertyInfo.PropertyType, propName);
+                        if (objValue != null)
+                        {
+                            propertyInfo.SetValue(obj, objValue);
+                            isFilled = true;
+                        }
                     }
-                }
-                if (isFilled)
-                {
-                    propValue = obj;
+                    if (isFilled)
+                    {
+                        propValue = obj;
+                    }
                 }
             }
             return isCustomNonEnumerableType;

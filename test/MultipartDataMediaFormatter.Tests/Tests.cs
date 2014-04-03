@@ -180,7 +180,30 @@ namespace MultipartDataMediaFormatter.Tests
                     {
                         new HttpFile("photo2.png", "image/png", new byte[] { 4, 3, 24, 23  }),
                         new HttpFile("photo3.jpg", "image/jpg", new byte[] { 80, 31, 12, 3, 78, 45 })
-                    }
+                    },
+                    ConnectedPersons = new List<PersonModel>()
+                                       {
+                                           new PersonModel()
+                                           {
+                                               FirstName = "inner first name",
+                                               LastName = "inner last name",
+                                               Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 }),
+                                               Attachments = new List<HttpFile>
+                                               {
+                                                    new HttpFile("photo21.png", "image/png", new byte[] { 4, 3, 24, 24  }),
+                                               },
+                                           },
+                                           new PersonModel()
+                                           {
+                                               FirstName = "inner first name 2",
+                                               LastName = "inner last name 2",
+                                               Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 }),
+                                               Attachments = new List<HttpFile>
+                                               {
+                                                    new HttpFile("photo211.png", "image/png", new byte[] { 4, 3, 24, 25  }),
+                                               },
+                                           }
+                                       }
                 };
         }
 
