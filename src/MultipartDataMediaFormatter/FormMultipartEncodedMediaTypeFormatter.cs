@@ -67,11 +67,9 @@ namespace MultipartDataMediaFormatter
             return result;
         }
 
-        public override Task WriteToStreamAsync(Type type, object value, Stream writeStream, HttpContent content,
+        public override async Task WriteToStreamAsync(Type type, object value, Stream writeStream, HttpContent content,
                                                 TransportContext transportContext)
         {
-            return Task.Run(() =>
-            {
                 if (!content.IsMimeMultipartContent())
                     throw new Exception("Not a Multipart Content");
 
@@ -82,10 +80,9 @@ namespace MultipartDataMediaFormatter
                 var objectToMultipartDataByteArrayConverter = new ObjectToMultipartDataByteArrayConverter();
                 byte[] multipartData = objectToMultipartDataByteArrayConverter.Convert(value, boudaryParameter.Value);
 
-                writeStream.Write(multipartData, 0, multipartData.Length);
+                await writeStream.WriteAsync (multipartData, 0, multipartData.Length);
                 
                 content.Headers.ContentLength = multipartData.Length;
-            });
         }
     }
 }
