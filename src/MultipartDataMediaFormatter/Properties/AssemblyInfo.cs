@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Alexander Kozlovskiy")]
 [assembly: AssemblyProduct("FormMultipartEncodedMediaTypeFormatter")]
-[assembly: AssemblyCopyright("Copyright © Alexander Kozlovskiy 2013")]
+[assembly: AssemblyCopyright("Copyright © Alexander Kozlovskiy 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
