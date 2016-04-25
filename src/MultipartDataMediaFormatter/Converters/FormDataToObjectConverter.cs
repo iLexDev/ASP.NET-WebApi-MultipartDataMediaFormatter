@@ -86,7 +86,7 @@ namespace MultipartDataMediaFormatter.Converters
                     {
                         try
                         {
-                            propValue = typeConverter.ConvertFromString(null, CultureInfo.CurrentCulture, val);
+                            propValue = typeConverter.ConvertFromString(null, CultureInfo.InvariantCulture, val);
                         }
                         catch (Exception ex)
                         {

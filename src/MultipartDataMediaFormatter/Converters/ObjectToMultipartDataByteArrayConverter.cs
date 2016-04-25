@@ -143,7 +143,7 @@ namespace MultipartDataMediaFormatter.Converters
                             var typeConverter = param.Value.GetType().GetToStringConverter();
                             if (typeConverter != null)
                             {
-                                objString = typeConverter.ConvertToString(null, CultureInfo.CurrentCulture, param.Value);
+                                objString = typeConverter.ConvertToString(null, CultureInfo.InvariantCulture, param.Value);
                             }
                             else
                             {
