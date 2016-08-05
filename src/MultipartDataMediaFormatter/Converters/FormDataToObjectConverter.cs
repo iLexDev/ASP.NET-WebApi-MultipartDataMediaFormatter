@@ -13,8 +13,9 @@ namespace MultipartDataMediaFormatter.Converters
     {
         private readonly FormData SourceData;
         private readonly IFormDataConverterLogger Logger;
+        private const string Undefined = "undefined";
 
-        public FormDataToObjectConverter(FormData sourceData, IFormDataConverterLogger logger) 
+        public FormDataToObjectConverter(FormData sourceData, IFormDataConverterLogger logger)
         {
             if (sourceData == null)
                 throw new ArgumentNullException("sourceData");
@@ -25,44 +26,44 @@ namespace MultipartDataMediaFormatter.Converters
             Logger = logger;
         }
 
-        public object Convert(Type destinitionType) 
+        public object Convert(Type destinationType)
         {
-            if (destinitionType == null)
-                throw new ArgumentNullException("destinitionType");
+            if (destinationType == null)
+                throw new ArgumentNullException("destinationType");
 
-            if (destinitionType == typeof(FormData))
+            if (destinationType == typeof(FormData))
                 return SourceData;
 
-            var objResult = CreateObject(destinitionType);
+            var objResult = CreateObject(destinationType);
             return objResult;
-        } 
+        }
 
-        private object CreateObject(Type destinitionType, string propertyName = "")
+        private object CreateObject(Type destinationType, string propertyName = "")
         {
             object propValue = null;
-            
+
             object buf;
-            if (TryGetFromFormData(destinitionType, propertyName, out buf)
-                || TryGetAsGenericDictionary(destinitionType, propertyName, out buf)
-                || TryGetAsGenericListOrArray(destinitionType, propertyName, out buf)
-                || TryGetAsCustomType(destinitionType, propertyName, out buf))
+            if (TryGetFromFormData(destinationType, propertyName, out buf)
+                || TryGetAsGenericDictionary(destinationType, propertyName, out buf)
+                || TryGetAsGenericListOrArray(destinationType, propertyName, out buf)
+                || TryGetAsCustomType(destinationType, propertyName, out buf))
             {
                 propValue = buf;
             }
-            else if (!IsFileOrConvertableFromString(destinitionType))
+            else if (!IsFileOrConvertableFromString(destinationType))
             {
-                Logger.LogError(propertyName, String.Format("Cannot parse type \"{0}\".", destinitionType.FullName));
+                Logger.LogError(propertyName, String.Format("Cannot parse type \"{0}\".", destinationType.FullName));
             }
-            
+
             return propValue;
         }
 
-        private bool TryGetFromFormData(Type destinitionType, string propertyName, out object propValue)
+        private bool TryGetFromFormData(Type destinationType, string propertyName, out object propValue)
         {
             bool existsInFormData = false;
             propValue = null;
 
-            if (destinitionType == typeof(HttpFile))
+            if (destinationType == typeof(HttpFile))
             {
                 HttpFile httpFile;
                 if (SourceData.TryGetValue(propertyName, out httpFile))
@@ -77,13 +78,18 @@ namespace MultipartDataMediaFormatter.Converters
                 if (SourceData.TryGetValue(propertyName, out val))
                 {
                     existsInFormData = true;
-                    var typeConverter = destinitionType.GetFromStringConverter();
+                    var typeConverter = destinationType.GetFromStringConverter();
                     if (typeConverter == null)
                     {
                         Logger.LogError(propertyName, "Cannot find type converter for field - " + propertyName);
                     }
                     else
                     {
+                        if (Nullable.GetUnderlyingType(destinationType) != null && val == Undefined)
+                        {
+                            return true;
+                        }
+
                         try
                         {
                             propValue = typeConverter.ConvertFromString(null, CultureInfo.CurrentCulture, val);
@@ -99,11 +105,11 @@ namespace MultipartDataMediaFormatter.Converters
             return existsInFormData;
         }
 
-        private bool TryGetAsGenericDictionary(Type destinitionType, string propertyName, out object propValue)
+        private bool TryGetAsGenericDictionary(Type destinationType, string propertyName, out object propValue)
         {
             propValue = null;
             Type keyType, valueType;
-            bool isGenericDictionary = IsGenericDictionary(destinitionType, out keyType, out valueType);
+            bool isGenericDictionary = IsGenericDictionary(destinationType, out keyType, out valueType);
             if (isGenericDictionary)
             {
                 var dictType = typeof(Dictionary<,>).MakeGenericType(new[] { keyType, valueType });
@@ -145,11 +151,11 @@ namespace MultipartDataMediaFormatter.Converters
             return isGenericDictionary;
         }
 
-        private bool TryGetAsGenericListOrArray(Type destinitionType, string propertyName, out object propValue)
+        private bool TryGetAsGenericListOrArray(Type destinationType, string propertyName, out object propValue)
         {
             propValue = null;
             Type genericListItemType;
-            bool isGenericList = IsGenericListOrArray(destinitionType, out genericListItemType);
+            bool isGenericList = IsGenericListOrArray(destinationType, out genericListItemType);
             if (isGenericList)
             {
                 var listType = typeof(List<>).MakeGenericType(genericListItemType);
@@ -179,7 +185,7 @@ namespace MultipartDataMediaFormatter.Converters
 
                 if (isFilled)
                 {
-                    if (destinitionType.IsArray)
+                    if (destinationType.IsArray)
                     {
                         var toArrayMethod = listType.GetMethod("ToArray");
                         propValue = toArrayMethod.Invoke(pValue, new object[0]);
@@ -194,18 +200,18 @@ namespace MultipartDataMediaFormatter.Converters
             return isGenericList;
         }
 
-        private bool TryGetAsCustomType(Type destinitionType, string propertyName, out object propValue)
+        private bool TryGetAsCustomType(Type destinationType, string propertyName, out object propValue)
         {
             propValue = null;
-            bool isCustomNonEnumerableType = destinitionType.IsCustomNonEnumerableType();
+            bool isCustomNonEnumerableType = destinationType.IsCustomNonEnumerableType();
             if (isCustomNonEnumerableType)
             {
                 if (String.IsNullOrWhiteSpace(propertyName)
                     || SourceData.AllKeys().Any(m => m.StartsWith(propertyName + ".", StringComparison.CurrentCultureIgnoreCase)))
                 {
-                    var obj = Activator.CreateInstance(destinitionType);
+                    var obj = Activator.CreateInstance(destinationType);
                     bool isFilled = false;
-                    foreach (PropertyInfo propertyInfo in destinitionType.GetPublicAccessibleProperties())
+                    foreach (PropertyInfo propertyInfo in destinationType.GetPublicAccessibleProperties())
                     {
                         var propName = (!String.IsNullOrEmpty(propertyName) ? propertyName + "." : "") + propertyInfo.Name;
                         var objValue = CreateObject(propertyInfo.PropertyType, propName);
@@ -227,7 +233,7 @@ namespace MultipartDataMediaFormatter.Converters
 
         private bool IsGenericDictionary(Type type, out Type keyType, out Type valueType)
         {
-            Type iDictType = type.GetInterface(typeof (IDictionary<,>).Name);
+            Type iDictType = type.GetInterface(typeof(IDictionary<,>).Name);
             if (iDictType != null)
             {
                 var types = iDictType.GetGenericArguments();
@@ -255,7 +261,7 @@ namespace MultipartDataMediaFormatter.Converters
                 }
 
                 Type iListType = type.GetInterface(typeof(ICollection<>).Name);
-                if (iListType != null) 
+                if (iListType != null)
                 {
                     Type[] genericArguments = iListType.GetGenericArguments();
                     if (genericArguments.Length == 1)
@@ -265,14 +271,14 @@ namespace MultipartDataMediaFormatter.Converters
                     }
                 }
             }
-          
+
             itemType = null;
             return false;
         }
 
         private bool IsFileOrConvertableFromString(Type type)
         {
-            if (type == typeof (HttpFile))
+            if (type == typeof(HttpFile))
                 return true;
 
             return type.GetFromStringConverter() != null;
