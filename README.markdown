@@ -101,6 +101,7 @@ public void PostPerson(PersonModel model)
   * CultureInfo
   * serializing byte array as HttpFile when sending data
   * validating non nullable value types properties if there is no appropriate keys in http request
+
 ##### Version 1.0.1 (2014-04-03)
 * fixed a bug that caused Exception (No MediaTypeFormatter is available to read an object of type <type name>) when posted data use multipart boundary different from used inside formatter code
 * fixed a bug that caused error when binding model with recursive properties.
