@@ -12,6 +12,7 @@ namespace MultipartDataMediaFormatter.Tests.Infrastructure
         public WebApiHttpServer(string serverUrl, MediaTypeFormatter formatter)
         {
             var config = new HttpSelfHostConfiguration(serverUrl);
+            config.Formatters.Clear();
             config.Formatters.Add(formatter);
             config.Routes.MapHttpRoute(
                 "API Default", "{controller}/{action}",

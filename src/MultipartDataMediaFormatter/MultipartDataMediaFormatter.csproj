@@ -39,7 +39,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Converters\HttpContentToFormDataConverter.cs" />
-    <Compile Include="Infrastructure\DateTimeConverterISO8601.cs" />
     <Compile Include="Infrastructure\Logger\FormatterLoggerAdapter.cs" />
     <Compile Include="Infrastructure\Logger\FormDataConverterLogger.cs" />
     <Compile Include="Infrastructure\HttpFile.cs" />
@@ -48,6 +47,10 @@
     <Compile Include="Converters\FormDataToObjectConverter.cs" />
     <Compile Include="Converters\ObjectToMultipartDataByteArrayConverter.cs" />
     <Compile Include="Infrastructure\Logger\IFormDataConverterLogger.cs" />
+    <Compile Include="Infrastructure\MultipartFormatterSettings.cs" />
+    <Compile Include="Infrastructure\TypeConverters\BooleanConverterEx.cs" />
+    <Compile Include="Infrastructure\TypeConverters\DateTimeConverterISO8601.cs" />
+    <Compile Include="Infrastructure\TypeConverters\FromStringConverterAdapter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Infrastructure\Extensions\TypeExtensions.cs" />
   </ItemGroup>

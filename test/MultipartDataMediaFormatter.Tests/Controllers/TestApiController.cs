@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Web.Http;
 using MultipartDataMediaFormatter.Converters;
@@ -10,6 +11,13 @@ namespace MultipartDataMediaFormatter.Tests.Controllers
 {
     public class TestApiController : ApiController
     {
+        private MultipartFormatterSettings Settings = new MultipartFormatterSettings()
+        {
+            SerializeByteArrayAsHttpFile = true,
+            CultureInfo = CultureInfo.GetCultureInfo("en-US"),
+            ValidateNonNullableMissedProperty = true
+        };
+
         [HttpPost]
         public ApiResult<PersonModel> PostPerson(PersonModel model)
         {
@@ -20,7 +28,7 @@ namespace MultipartDataMediaFormatter.Tests.Controllers
         public ApiResult<PersonModel> PostPersonBindRawFormData(FormData formData)
         {
             var logger = new FormDataConverterLogger();
-            var dataToObjectConverter = new FormDataToObjectConverter(formData, logger);
+            var dataToObjectConverter = new FormDataToObjectConverter(formData, logger, Settings);
 
             var person = (PersonModel)dataToObjectConverter.Convert(typeof(PersonModel));
             logger.EnsureNoErrors();
@@ -38,7 +46,7 @@ namespace MultipartDataMediaFormatter.Tests.Controllers
         public ApiResult<HttpFile> PostFileBindRawFormData(FormData formData)
         {
             HttpFile file;
-            formData.TryGetValue("", out file);
+            formData.TryGetValue("", Settings.CultureInfo, out file);
             return GetApiResult(file);
         }
 
@@ -52,7 +60,7 @@ namespace MultipartDataMediaFormatter.Tests.Controllers
         public ApiResult<string> PostStringBindRawFormData(FormData formData)
         {
             string data;
-            formData.TryGetValue("", out data);
+            formData.TryGetValue("", Settings.CultureInfo, out data);
             return GetApiResult(data);
         }
 
@@ -62,14 +70,21 @@ namespace MultipartDataMediaFormatter.Tests.Controllers
             return GetApiResult(formData);
         }
 
+        
+        [HttpPost]
+        public ApiResult<EmptyModel> PostEmptyModel(EmptyModel model)
+        {
+            return GetApiResult(model);
+        }
+        
+
         private ApiResult<T> GetApiResult<T>(T value)
         {
             var result = new ApiResult<T>() { Value = value };
             if (!ModelState.IsValid)
             {
                 var errors = ModelState
-                    .SelectMany(m => m.Value.Errors)
-                    .Select(m => (m.ErrorMessage ?? (m.Exception != null ? m.Exception.Message : "")))
+                    .Select(m => String.Format("{0}: {1}", m.Key, String.Join(". ", m.Value.Errors.Select(x => (x.ErrorMessage ?? (x.Exception != null ? x.Exception.Message : ""))))))
                     .ToList();
 
                 result.ErrorMessage = String.Join(" ", errors);

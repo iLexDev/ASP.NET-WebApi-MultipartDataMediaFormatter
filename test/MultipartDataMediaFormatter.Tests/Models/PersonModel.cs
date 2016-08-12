@@ -41,6 +41,14 @@ namespace MultipartDataMediaFormatter.Tests.Models
 
         public SomeValue<PersonProperty> SomeGenericProperty { get; set; }
 
+        public List<int> Ints { get; set; }
+
+        public Dictionary<int, int> IntProperties { get; set; }
+
+        public byte[] Bytes { get; set; }
+
+        public List<int> Years { get; set; }
+
         public List<PersonModel> ConnectedPersons { get; set; }
     }
 
@@ -48,12 +56,14 @@ namespace MultipartDataMediaFormatter.Tests.Models
     {
         public int PropertyCode { get; set; }
         public string PropertyName { get; set; }
+        public byte[] Bytes { get; set; }
     }
 
     public class PersonRole
     {
         public int RoleId { get; set; }
         public string RoleName { get; set; }
+        public List<int> Rights { get; set; }
     }
 
     public class SomeValue<T>
@@ -67,5 +77,9 @@ namespace MultipartDataMediaFormatter.Tests.Models
     {
         Admin,
         User
+    }
+
+    public class EmptyModel
+    {
     }
 }

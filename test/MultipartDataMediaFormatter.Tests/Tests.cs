@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
 using KellermanSoftware.CompareNetObjects;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -20,9 +23,9 @@ namespace MultipartDataMediaFormatter.Tests
         public void TestInit()
         {
             //need for correct comparing validation messages
-            var enCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
-            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = enCulture;
-            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = enCulture;
+            var enCulture = CultureInfo.GetCultureInfo("en-US");
+            CultureInfo.DefaultThreadCurrentUICulture = enCulture;
+            CultureInfo.DefaultThreadCurrentCulture = enCulture;
         }
 
         [TestMethod]
@@ -32,10 +35,17 @@ namespace MultipartDataMediaFormatter.Tests
         }
 
         [TestMethod]
+        public void TestModelWithoutPropertiesPost()
+        {
+            var personModel = new EmptyModel();
+            TestPost(personModel, "TestApi/PostEmptyModel", "Cannot convert data to multipart/form-data format. No data found.");
+        }
+
+        [TestMethod]
         public void TestComplexModelWithValidationErrorsPost()
         {
             TestPost(PreparePersonModelWithValidationErrors(), "TestApi/PostPerson",
-                "The LastName field is required. The Photo field is required. The GenericValue field is required.");
+                "model.LastName: The LastName field is required. model.Photo: The Photo field is required. model.SomeGenericProperty.GenericValue: The GenericValue field is required.");
         }
 
         [TestMethod]
@@ -84,56 +94,123 @@ namespace MultipartDataMediaFormatter.Tests
 
             var result = PostPersonModelHttpContent(httpContent);
 
-            Assert.IsTrue(String.IsNullOrWhiteSpace(result.ErrorMessage), result.ErrorMessage);
+            Assert.AreEqual("model.PersonId: The value is required. model.CreatedDateTime: The value is required.", result.ErrorMessage);
+
+            AssertModelsEquals(model, result.Value);
+        }
+
+        [TestMethod]
+        public void TestPostWithoutFormatterNotNullableValidationNotRequired()
+        {
+            PersonModel model;
+            var httpContent = PreparePersonModelHttpContent(out model);
+
+            var formatter = new FormMultipartEncodedMediaTypeFormatter(new MultipartFormatterSettings()
+            {
+                SerializeByteArrayAsHttpFile = true,
+                CultureInfo = CultureInfo.CurrentCulture,
+                ValidateNonNullableMissedProperty = false
+            });
+
+            var result = PostPersonModelHttpContent(httpContent, formatter);
+
+            Assert.AreEqual(null, result.ErrorMessage);
+
+            AssertModelsEquals(model, result.Value);
+        }
+
+        [TestMethod]
+        public void TestPostWithoutFormatterSerializeByteArrayAsIndexedArray()
+        {
+            PersonModel model;
+            var httpContent = PreparePersonModelHttpContent(out model);
+
+            var formatter = new FormMultipartEncodedMediaTypeFormatter(new MultipartFormatterSettings()
+            {
+                SerializeByteArrayAsHttpFile = false,
+                CultureInfo = CultureInfo.CurrentCulture,
+                ValidateNonNullableMissedProperty = false
+            });
+
+            var result = PostPersonModelHttpContent(httpContent, formatter);
+
+            Assert.AreEqual(null, result.ErrorMessage);
 
             AssertModelsEquals(model, result.Value);
         }
 
         private ApiResult<T> TestPost<T>(T model, string url, string errorMessage = null)
         {
-            var result = PostModel(model, url);
+            ApiResult<T> result = null;
+            try
+            {
+                result = PostModel(model, url);
+            }
+            catch (Exception ex)
+            {
+                if (errorMessage != ex.GetBaseException().Message)
+                {
+                    throw;
+                }
+            }
 
-            if (String.IsNullOrWhiteSpace(errorMessage))
+            if (result != null)
             {
-                Assert.IsTrue(String.IsNullOrWhiteSpace(result.ErrorMessage), result.ErrorMessage);
+                if (String.IsNullOrWhiteSpace(errorMessage))
+                {
+                    Assert.IsTrue(String.IsNullOrWhiteSpace(result.ErrorMessage), result.ErrorMessage);
+                    AssertModelsEquals(model, result.Value);
+                }
+                else
+                {
+                    Assert.AreEqual(errorMessage, result.ErrorMessage, "Invalid ErrorMessage");
+                }
             }
-            else
-            {
-                Assert.AreEqual(errorMessage, result.ErrorMessage, "Invalid ErrorMessage");
-            }
-            
-            AssertModelsEquals(model, result.Value);
 
             return result;
         }
 
         private void AssertModelsEquals(object originalModel, object returnedModel)
         {
-            var compareObjects = new CompareObjects {MaxDifferences = 10 };
-            Assert.IsTrue(compareObjects.Compare(originalModel, returnedModel), "Source model is not the same as returned model. {0}", compareObjects.DifferencesString);
+            var compareObjects = new CompareLogic(new ComparisonConfig() {MaxDifferences = 10 });
+            var comparisonResult = compareObjects.Compare(originalModel, returnedModel);
+            Assert.IsTrue(comparisonResult.AreEqual, "Source model is not the same as returned model. {0}", comparisonResult.DifferencesString);
         }
 
         private ApiResult<T> PostModel<T>(T model, string url)
         {
-            var mediaTypeFormatter = new FormMultipartEncodedMediaTypeFormatter();
+            var mediaTypeFormatter = GetFormatter();
 
             using (new WebApiHttpServer(BaseApiAddress, mediaTypeFormatter))
             using (var client = CreateHttpClient(BaseApiAddress))
             using (HttpResponseMessage response = client.PostAsync(url, model, mediaTypeFormatter).Result)
             {
+                ApiResult<T> resultModel;
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    var err = response.Content.ReadAsStringAsync().Result;
-                    Assert.Fail(err);
+                    var error = response.Content.ReadAsAsync<List<ResponseErrorItem>>(new[] { mediaTypeFormatter }).Result;
+                    var err = error.Where(m => m.Key == "ExceptionMessage").Select(m => m.Value).FirstOrDefault();
+                    if (String.IsNullOrWhiteSpace(err))
+                    {
+                        var responseContent = response.Content.ReadAsStringAsync().Result;
+                        Assert.Fail(responseContent);
+                    }
+                    resultModel = new ApiResult<T>()
+                    {
+                        ErrorMessage = err
+                    };
                 }
-                var resultModel = response.Content.ReadAsAsync<ApiResult<T>>(new[] { mediaTypeFormatter }).Result;
+                else
+                {
+                    resultModel = response.Content.ReadAsAsync<ApiResult<T>>(new[] { mediaTypeFormatter }).Result;
+                }
                 return resultModel;
             }
         }
 
-        private ApiResult<PersonModel> PostPersonModelHttpContent(HttpContent httpContent)
+        private ApiResult<PersonModel> PostPersonModelHttpContent(HttpContent httpContent, MediaTypeFormatter mediaTypeFormatter = null)
         {
-            var mediaTypeFormatter = new FormMultipartEncodedMediaTypeFormatter();
+            mediaTypeFormatter = mediaTypeFormatter ?? GetFormatter();
 
             using (new WebApiHttpServer(BaseApiAddress, mediaTypeFormatter))
             using (var client = CreateHttpClient(BaseApiAddress))
@@ -164,11 +241,11 @@ namespace MultipartDataMediaFormatter.Tests
                     ScoreScaleFactor = 0.25879,
                     IsActive = true,
                     PersonType = PersonTypes.Admin,
-                    Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 }),
+                    Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }),
                     SomeGenericProperty = new SomeValue<PersonProperty>() { Name = "newname", GenericValue = new PersonProperty() { PropertyCode = 8, PropertyName = "addname",}},
                     Properties = new Dictionary<string, PersonProperty>
                     {
-                        { "first", new PersonProperty { PropertyCode = 1, PropertyName = "Alabama" } },
+                        { "first", new PersonProperty { PropertyCode = 1, PropertyName = "Alabama", Bytes = new byte[] { 11, 3, 24, 23 }} },
                         { "second", new PersonProperty { PropertyCode = 2, PropertyName = "New York" } }
                     },
                     Roles = new List<PersonRole>
@@ -192,6 +269,7 @@ namespace MultipartDataMediaFormatter.Tests
                                                {
                                                     new HttpFile("photo21.png", "image/png", new byte[] { 4, 3, 24, 24  }),
                                                },
+                                               IntProperties = new Dictionary<int, int>() { { 1, 2 } },
                                            },
                                            new PersonModel()
                                            {
@@ -202,8 +280,13 @@ namespace MultipartDataMediaFormatter.Tests
                                                {
                                                     new HttpFile("photo211.png", "image/png", new byte[] { 4, 3, 24, 25  }),
                                                },
+                                               Bytes = new byte[] { 4, 3, 24, 23 },
+                                               Ints = new List<int>() { 10 }
                                            }
-                                       }
+                                       },
+                    Ints = new List<int>() { 10 },
+                    IntProperties = new Dictionary<int, int>() { { 1, 2 } },
+                    Bytes = new byte[] { 4, 3, 24, 23 }
                 };
         }
 
@@ -243,13 +326,45 @@ namespace MultipartDataMediaFormatter.Tests
             {
                 FirstName = "First",
                 LastName = "Last",
-                Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 })
+                Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 }),
+                Years = new List<int>()
+                {
+                    2001, 2010, 2015
+                },
+                Roles = new List<PersonRole>
+                {
+                    new PersonRole()
+                    {   
+                        RoleId = 1,
+                        Rights = new List<int>(){ 1, 2, 5 }
+                    }
+                },
+                IsActive = true,
+                ActivityProgress = null,
+                Attachments = new List<HttpFile>()
+                {
+                    new HttpFile("file1.tt", "text/plain", new byte[] { 1,3,5 }),
+                    new HttpFile("file2.cf", "text/plain", new byte[] { 4,2,5 })
+                }
             };
 
             var httpContent = new MultipartFormDataContent("testnewboundary");
 
             httpContent.Add(new StringContent(personModel.LastName), "LastName");
             httpContent.Add(new StringContent(personModel.FirstName), "FirstName");
+            httpContent.Add(new StringContent(personModel.ActivityProgress == null ? "undefined" : personModel.ActivityProgress.ToString()), "ActivityProgress");
+            httpContent.Add(new StringContent(personModel.IsActive ? "on" : "off"), "IsActive");
+
+            foreach (var year in personModel.Years)
+            {
+                httpContent.Add(new StringContent(year.ToString()), "Years");    
+            }
+
+            httpContent.Add(new StringContent(personModel.Roles[0].RoleId.ToString()), "Roles[0].RoleId");    
+            foreach (var right in personModel.Roles[0].Rights)
+            {
+                httpContent.Add(new StringContent(right.ToString()), "Roles[0].Rights");    
+            }
 
             var fileContent = new ByteArrayContent(personModel.Photo.Buffer);
             fileContent.Headers.ContentType = new MediaTypeHeaderValue(personModel.Photo.MediaType);
@@ -260,9 +375,31 @@ namespace MultipartDataMediaFormatter.Tests
             };
             httpContent.Add(fileContent);
 
+            for (int i = 0; i < personModel.Attachments.Count; i++)
+            {
+                var attachment = personModel.Attachments[i];
+                var content = new ByteArrayContent(attachment.Buffer);
+                content.Headers.ContentType = new MediaTypeHeaderValue(attachment.MediaType);
+                content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                {
+                    FileName = attachment.FileName,
+                    Name = "Attachments"
+                };
+                httpContent.Add(content);
+            }
+
             return httpContent;
         }
 
+        private MediaTypeFormatter GetFormatter()
+        {
+            return new FormMultipartEncodedMediaTypeFormatter(new MultipartFormatterSettings()
+            {
+                SerializeByteArrayAsHttpFile = true,
+                CultureInfo = CultureInfo.CurrentCulture,
+                ValidateNonNullableMissedProperty = true
+            });
+        }
         private HttpClient CreateHttpClient(string baseUrl)
         {
             var client = new HttpClient()

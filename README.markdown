@@ -5,7 +5,7 @@ This is solution for automatic binding action parameters of custom types (includ
 
 **This formatter can process:** 
 
-* **custom non enumarable classes (deep nested classes supported)**       
+* **custom non enumerable classes (deep nested classes supported)**       
 * **all simple types that can be converted from/to string (using TypeConverter)** 
 * **files (MultipartDataMediaFormatter.Infrastructure.HttpFile class)** 
 * **generic arrays** 
@@ -20,19 +20,24 @@ For using this formatter all you need is to simply add current formatter to WebA
 if WebApi hosted on IIS (on Application Start):       
 
 ```c#
-GlobalConfiguration.Configuration.Formatters.Add(new FormMultipartEncodedMediaTypeFormatter());    
+GlobalConfiguration.Configuration.Formatters.Add(new FormMultipartEncodedMediaTypeFormatter(new MultipartFormatterSettings()));    
 ```
 if WebApi is self-hosted:  
 
 ```c#
-new HttpSelfHostConfiguration(<url>).Formatters.Add(new FormMultipartEncodedMediaTypeFormatter());      
+new HttpSelfHostConfiguration(<url>).Formatters.Add(new FormMultipartEncodedMediaTypeFormatter(new MultipartFormatterSettings()));      
 ```  
 Using formatter for sending objects (example from test project):    
 
 ```c#
 private ApiResult<T> PostModel<T>(T model, string url)
 {
- var mediaTypeFormatter = new FormMultipartEncodedMediaTypeFormatter();
+ var mediaTypeFormatter = new FormMultipartEncodedMediaTypeFormatter(new MultipartFormatterSettings()
+    {
+        SerializeByteArrayAsHttpFile = true,
+        CultureInfo = CultureInfo.CurrentCulture,
+        ValidateNonNullableMissedProperty = true
+    });
  using (new WebApiHttpServer(BaseApiAddress, mediaTypeFormatter))
  using (var client = CreateHttpClient(BaseApiAddress))
  using (HttpResponseMessage response = client.PostAsync(url, model, mediaTypeFormatter).Result)
@@ -84,6 +89,29 @@ public void PostPerson(PersonModel model)
    //do something with the model
 }
 ```
+
+## History
+----------------
+##### Version 1.0.2 (2016-08-12)
+
+* parsing lists of simple types and files with not indexed naming scheme (keys have same names like "propName" or "propName[]")
+* parsing values "on" and "off" for boolean properties
+* binding HttpFile from http request as byte array if model has such property
+* added class ``` MultipartDataMediaFormatter.Infrastructure.MultipartFormatterSettings``` to control:
+  * CultureInfo
+  * serializing byte array as HttpFile when sending data
+  * validating non nullable value types properties if there is no appropriate keys in http request
+##### Version 1.0.1 (2014-04-03)
+* fixed a bug that caused Exception (No MediaTypeFormatter is available to read an object of type <type name>) when posted data use multipart boundary different from used inside formatter code
+* fixed a bug that caused error when binding model with recursive properties.
+
+##### Version 1.0 (2013-11-22)
+* First release
+
+## Notes
+----------------
+For successfully running tests from the test project you should run Visual Studio with administrator rights because of using Self Hosted WebApi Server ```System.Web.Http.SelfHost.HttpSelfHostServer```
+
 ## License
 
 Licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.php).

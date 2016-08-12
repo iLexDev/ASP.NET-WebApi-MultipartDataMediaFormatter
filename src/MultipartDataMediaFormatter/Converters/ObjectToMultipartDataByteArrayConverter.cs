@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Linq;
 using System.Text;
 using MultipartDataMediaFormatter.Infrastructure;
 using MultipartDataMediaFormatter.Infrastructure.Extensions;
@@ -10,6 +10,16 @@ namespace MultipartDataMediaFormatter.Converters
 {
     public class ObjectToMultipartDataByteArrayConverter
     {
+        private MultipartFormatterSettings Settings { get; set; }
+
+        public ObjectToMultipartDataByteArrayConverter(MultipartFormatterSettings settings)
+        {
+            if (settings == null)
+                throw new ArgumentNullException("settings");
+
+            Settings = settings;
+        }
+
         public byte[] Convert(object value, string boundary)
         {
             if(value == null)
@@ -18,6 +28,7 @@ namespace MultipartDataMediaFormatter.Converters
                 throw new ArgumentNullException("boundary");
 
             List<KeyValuePair<string, object>> propertiesList = ConvertObjectToFlatPropertiesList(value);
+
             byte[] buffer = GetMultipartFormDataBytes(propertiesList, boundary);
             return buffer;
         }
@@ -70,7 +81,7 @@ namespace MultipartDataMediaFormatter.Converters
                         index++;
                     }
                 }
-                else if (obj is ICollection)
+                else if (obj is ICollection && !IsByteArrayConvertableToHttpFile(obj))
                 {
                     var list = obj as ICollection;
                     int index = 0;
@@ -84,7 +95,7 @@ namespace MultipartDataMediaFormatter.Converters
                 }
                 else if (type.IsCustomNonEnumerableType())
                 {
-                    foreach (var propertyInfo in type.GetPublicAccessibleProperties())
+                    foreach (var propertyInfo in type.GetProperties())
                     {
                         string propName = String.IsNullOrWhiteSpace(prefix)
                                               ? propertyInfo.Name
@@ -103,6 +114,9 @@ namespace MultipartDataMediaFormatter.Converters
 
         private byte[] GetMultipartFormDataBytes(List<KeyValuePair<string, object>> postParameters, string boundary)
         {
+            if (postParameters == null || !postParameters.Any())
+                throw new Exception("Cannot convert data to multipart/form-data format. No data found.");
+
             Encoding encoding = Encoding.UTF8;
 
             using (var formDataStream = new System.IO.MemoryStream())
@@ -118,9 +132,11 @@ namespace MultipartDataMediaFormatter.Converters
 
                     needsCLRF = true;
 
-                    if (param.Value is HttpFile)
+                    if (param.Value is HttpFile || IsByteArrayConvertableToHttpFile(param.Value))
                     {
-                        HttpFile httpFileToUpload = (HttpFile)param.Value;
+                        HttpFile httpFileToUpload = param.Value is HttpFile
+                                            ? (HttpFile) param.Value
+                                            : new HttpFile(null, null, (byte[]) param.Value);
 
                         // Add just the first part of this param, since we will write the file data directly to the Stream
                         string header =
@@ -143,7 +159,7 @@ namespace MultipartDataMediaFormatter.Converters
                             var typeConverter = param.Value.GetType().GetToStringConverter();
                             if (typeConverter != null)
                             {
-                                objString = typeConverter.ConvertToString(null, CultureInfo.CurrentCulture, param.Value);
+                                objString = typeConverter.ConvertToString(null, Settings.CultureInfo, param.Value);
                             }
                             else
                             {
@@ -168,6 +184,11 @@ namespace MultipartDataMediaFormatter.Converters
 
                 return formData;
             }
+        }
+
+        private bool IsByteArrayConvertableToHttpFile(object value)
+        {
+            return value is byte[] && Settings.SerializeByteArrayAsHttpFile;
         }
     }
 }

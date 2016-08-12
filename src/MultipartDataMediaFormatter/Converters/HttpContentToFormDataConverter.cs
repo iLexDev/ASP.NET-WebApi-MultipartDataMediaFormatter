@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using MultipartDataMediaFormatter.Infrastructure;
 
@@ -15,12 +16,19 @@ namespace MultipartDataMediaFormatter.Converters
             if(content == null)
                 throw new ArgumentNullException("content");
 
-            if (!content.IsMimeMultipartContent())
+            //commented to provide more details about incorrectly formatted data from ReadAsMultipartAsync method
+            /*if (!content.IsMimeMultipartContent())
             {
                 throw new Exception("Unsupported Media Type");
-            }
+            }*/
 
-            MultipartMemoryStreamProvider multipartProvider = await content.ReadAsMultipartAsync();
+            //http://stackoverflow.com/questions/15201255/request-content-readasmultipartasync-never-returns
+            MultipartMemoryStreamProvider multipartProvider = null;
+            await Task.Factory
+                .StartNew(() => multipartProvider = content.ReadAsMultipartAsync().Result,
+                    CancellationToken.None,
+                    TaskCreationOptions.LongRunning, // guarantees separate thread
+                    TaskScheduler.Default);
 
             var multipartFormData = await Convert(multipartProvider);
             return multipartFormData;

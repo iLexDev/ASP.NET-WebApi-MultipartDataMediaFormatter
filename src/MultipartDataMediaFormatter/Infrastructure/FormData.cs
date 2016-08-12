@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace MultipartDataMediaFormatter.Infrastructure
@@ -37,9 +38,9 @@ namespace MultipartDataMediaFormatter.Infrastructure
             }
         }
 
-        public IEnumerable<string> AllKeys()
+        public List<string> GetAllKeys()
         {
-            return Fields.Select(m => m.Name).Union(Files.Select(m => m.Name));
+            return Fields.Select(m => m.Name).Concat(Files.Select(m => m.Name)).ToList();
         }
 
         public void Add(string name, string value)
@@ -52,9 +53,9 @@ namespace MultipartDataMediaFormatter.Infrastructure
             Files.Add(new ValueFile() { Name = name, Value = value });
         }
 
-        public bool TryGetValue(string name, out string value)
+        public bool TryGetValue(string name, CultureInfo culture, out string value)
         {
-            var field = Fields.FirstOrDefault(m => String.Equals(m.Name, name, StringComparison.CurrentCultureIgnoreCase));
+            var field = Fields.FirstOrDefault(m => culture.CompareInfo.Compare(m.Name, name, CompareOptions.IgnoreCase) == 0);
             if (field != null)
             {
                 value = field.Value;
@@ -64,9 +65,9 @@ namespace MultipartDataMediaFormatter.Infrastructure
             return false;
         }
 
-        public bool TryGetValue(string name, out HttpFile value)
+        public bool TryGetValue(string name, CultureInfo culture, out HttpFile value)
         {
-            var field = Files.FirstOrDefault(m => String.Equals(m.Name, name, StringComparison.CurrentCultureIgnoreCase));
+            var field = Files.FirstOrDefault(m => culture.CompareInfo.Compare(m.Name, name, CompareOptions.IgnoreCase) == 0);
             if (field != null)
             {
                 value = field.Value;
@@ -74,6 +75,30 @@ namespace MultipartDataMediaFormatter.Infrastructure
             }
             value = null;
             return false;
+        }
+
+        public List<string> GetValues(string name, CultureInfo culture)
+        {
+            return Fields
+                .Where(m => culture.CompareInfo.Compare(m.Name, name, CompareOptions.IgnoreCase) == 0)
+                .Select(m => m.Value)
+                .ToList();
+        }
+
+        public List<HttpFile> GetFiles(string name, CultureInfo culture)
+        {
+            return Files
+                .Where(m => culture.CompareInfo.Compare(m.Name, name, CompareOptions.IgnoreCase) == 0)
+                .Select(m => m.Value)
+                .ToList();
+        }
+
+        public bool Contains(string name, CultureInfo culture)
+        {
+            string val;
+            HttpFile file;
+
+            return TryGetValue(name, culture, out val) || TryGetValue(name, culture, out file);
         }
 
         public class ValueString

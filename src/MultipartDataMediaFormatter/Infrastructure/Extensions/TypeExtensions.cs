@@ -1,21 +1,27 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Reflection;
+using MultipartDataMediaFormatter.Infrastructure.TypeConverters;
 
 namespace MultipartDataMediaFormatter.Infrastructure.Extensions
 {
     internal static class TypeExtensions
     {
-        internal static TypeConverter GetFromStringConverter(this Type type)
+        internal static FromStringConverterAdapter GetFromStringConverter(this Type type)
         {
             TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
+
+            if (typeConverter is BooleanConverter)
+            {
+                //replace default boolean converter for deserializing on/off values received from html page
+                typeConverter = new BooleanConverterEx();
+            }
             if (typeConverter != null && !typeConverter.CanConvertFrom(typeof(String)))
             {
                 typeConverter = null;
             }
-            return typeConverter;
+
+            return typeConverter == null ? null : new FromStringConverterAdapter(type, typeConverter);
         }
 
         internal static TypeConverter GetToStringConverter(this Type type)
@@ -31,16 +37,6 @@ namespace MultipartDataMediaFormatter.Infrastructure.Extensions
                 typeConverter = null;
             }
             return typeConverter;
-        }
-
-        internal static IEnumerable<PropertyInfo> GetPublicAccessibleProperties(this Type type)
-        {
-            foreach (PropertyInfo propertyInfo in type.GetProperties())
-            {
-                if (!propertyInfo.CanRead || !propertyInfo.CanWrite || propertyInfo.SetMethod == null || propertyInfo.SetMethod.IsPrivate)
-                    continue;
-                yield return propertyInfo;
-            }
         }
 
         internal static bool IsCustomNonEnumerableType(this Type type)
