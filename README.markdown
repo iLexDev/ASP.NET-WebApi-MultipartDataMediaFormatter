@@ -91,7 +91,7 @@ public void PostPerson(PersonModel model)
 ```
 
 ## History
-----------------
+
 ##### Version 1.0.2 (2016-08-12)
 
 * parsing lists of simple types and files with not indexed naming scheme (keys have same names like "propName" or "propName[]")
@@ -110,7 +110,7 @@ public void PostPerson(PersonModel model)
 * First release
 
 ## Notes
-----------------
+
 For successfully running tests from the test project you should run Visual Studio with administrator rights because of using Self Hosted WebApi Server ```System.Web.Http.SelfHost.HttpSelfHostServer```
 
 ## License
