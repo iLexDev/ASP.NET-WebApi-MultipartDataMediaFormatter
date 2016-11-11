@@ -12,6 +12,11 @@ This is solution for automatic binding action parameters of custom types (includ
 * **generic lists** 
 * **generic dictionaries** 
 
+Install
+=================
+```powershell
+PM> Install-Package Senparc.Weixin.MP
+
 Using the code        
 =================
 
