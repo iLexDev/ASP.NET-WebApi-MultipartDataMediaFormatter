@@ -15,7 +15,7 @@ This is solution for automatic binding action parameters of custom types (includ
 Install
 =================
 ```powershell
-PM> Install-Package Senparc.Weixin.MP
+PM> Install-Package MultipartDataMediaFormatter
 ```
 
 Using the code        
