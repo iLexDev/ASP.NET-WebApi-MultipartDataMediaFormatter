@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>MultipartDataMediaFormatter.V2</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>http://www.opensource.org/licenses/mit-license.php</licenseUrl>
+    <projectUrl>https://github.com/iLexDev/ASP.NET-WebApi-MultipartDataMediaFormatter</projectUrl>    
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A library for binding custom types (including files) when sending and receiving multipart encoded form data</description>    
+    <copyright>Copyright 2017</copyright>
+    <tags>Asp.Net WebApi MediaFormatters MultipartData Multipart MultipartFormData</tags>
+  </metadata>
+</package>
