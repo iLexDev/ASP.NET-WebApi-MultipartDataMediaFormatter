@@ -95,7 +95,7 @@ public void PostPerson(PersonModel model)
 
 ##### Version 2.0.0 (2017-05-27)
 
-* added Nuget package [MultipartDataMediaFormatter.V2] (https://www.nuget.org/packages/MultipartDataMediaFormatter.V2)
+* added Nuget package [MultipartDataMediaFormatter.V2](https://www.nuget.org/packages/MultipartDataMediaFormatter.V2)
 
 ##### Version 1.0.2 (2016-08-12)
 
