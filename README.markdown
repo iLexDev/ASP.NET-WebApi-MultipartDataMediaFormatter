@@ -15,7 +15,12 @@ This is solution for automatic binding action parameters of custom types (includ
 Using the code        
 =================
 
-For using this formatter all you need is to simply add current formatter to WebApi formatters collection: 
+Install formatter from Nuget:
+```c#
+Install-Package MultipartDataMediaFormatter.V2
+```
+
+Add it to WebApi formatters collection: 
 
 if WebApi hosted on IIS (on Application Start):       
 
