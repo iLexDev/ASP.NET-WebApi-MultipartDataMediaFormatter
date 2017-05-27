@@ -70,16 +70,13 @@ Bind custom model example:
 public class PersonModel
 {
    public string FirstName {get; set;}
-
    public string LastName {get; set;}
-
    public DateTime? BirthDate {get; set;}
-
    public HttpFile AvatarImage {get; set;}
-
    public List<HttpFile> Attachments {get; set;}
-
    public List<PersonModel> ConnectedPersons {get; set;}
+   public PersonModel Creator {get; set;}
+   public List<string> Attributes {get; set;}
 }
 
 //api controller example
@@ -88,6 +85,34 @@ public void PostPerson(PersonModel model)
 {
    //do something with the model
 }
+
+/*
+Client http form keys:
+* FirstName
+* LastName
+* BirthDate
+* AvatarImage
+
+* Attachments[0]
+* Attachments[1]
+* ... other Attachments[0...n]
+
+* ConnectedPersons[0].FirstName
+* ConnectedPersons[0].LastName
+* ... other properties for ConnectedPersons[0] property
+
+* Creator.FirstName
+* Creator.LastName
+* ... other properties for Creator property
+
+* Attributes[0]
+* Attributes[1]
+* ... other Attributes[0...n]
+ or you can use not indexed names for simple types:
+ * Attributes
+ * Attributes
+ * ... other Attributes
+*/
 ```
 
 ## History
