@@ -286,8 +286,34 @@ namespace MultipartDataMediaFormatter.Tests
                                        },
                     Ints = new List<int>() { 10 },
                     IntProperties = new Dictionary<int, int>() { { 1, 2 } },
-                    Bytes = new byte[] { 4, 3, 24, 23 }
-                };
+                    Bytes = new byte[] { 4, 3, 24, 23 },
+                    PersonsCollection = new List<PersonModel>()
+                                       {
+                                           new PersonModel()
+                                           {
+                                               FirstName = "inner first name 3",
+                                               LastName = "inner last name",
+                                               Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 }),
+                                               Attachments = new List<HttpFile>
+                                               {
+                                                    new HttpFile("photo21.png", "image/png", new byte[] { 4, 3, 24, 24  }),
+                                               },
+                                               IntProperties = new Dictionary<int, int>() { { 1, 2 } },
+                                           },
+                                           new PersonModel()
+                                           {
+                                               FirstName = "inner first name 4",
+                                               LastName = "inner last name 2",
+                                               Photo = new HttpFile("photo.png", "image/png", new byte[] { 0, 1, 2, 3, 7 }),
+                                               Attachments = new List<HttpFile>
+                                               {
+                                                    new HttpFile("photo211.png", "image/png", new byte[] { 4, 3, 24, 25  }),
+                                               },
+                                               Bytes = new byte[] { 4, 3, 24, 23 },
+                                               Ints = new List<int>() { 10 }
+                                           }
+                                       },
+            };
         }
 
         private PersonModel PreparePersonModelWithValidationErrors()

@@ -43,13 +43,15 @@ namespace MultipartDataMediaFormatter.Tests.Models
 
         public List<int> Ints { get; set; }
 
-        public Dictionary<int, int> IntProperties { get; set; }
+        public IDictionary<int, int> IntProperties { get; set; }
 
         public byte[] Bytes { get; set; }
 
         public List<int> Years { get; set; }
 
         public List<PersonModel> ConnectedPersons { get; set; }
+
+        public IEnumerable<PersonModel> PersonsCollection { get; set; }
     }
 
     public class PersonProperty

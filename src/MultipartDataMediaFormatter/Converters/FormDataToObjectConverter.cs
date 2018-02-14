@@ -75,9 +75,8 @@ namespace MultipartDataMediaFormatter.Converters
         {
             propValue = null;
 
-            Type genericListItemType;
-            bool isGenericList = IsGenericListOrArray(destinationType, out genericListItemType);
-            if (isGenericList)
+            Type genericListItemType;            
+            if (IsGenericEnumerable(destinationType, out genericListItemType))
             {
                 var items = GetNotIndexedListItems(propertyName, genericListItemType);
                 propValue = MakeList(genericListItemType, destinationType, items, propertyName);
@@ -180,9 +179,8 @@ namespace MultipartDataMediaFormatter.Converters
         private bool TryGetAsGenericDictionary(Type destinationType, string propertyName, out object propValue)
         {
             propValue = null;
-            Type keyType, valueType;
-            bool isGenericDictionary = IsGenericDictionary(destinationType, out keyType, out valueType);
-            if (isGenericDictionary)
+            Type keyType, valueType;            
+            if (IsGenericDictionary(destinationType, out keyType, out valueType))
             {
                 var dictType = typeof(Dictionary<,>).MakeGenericType(new[] { keyType, valueType });
                 var add = dictType.GetMethod("Add");
@@ -218,23 +216,24 @@ namespace MultipartDataMediaFormatter.Converters
                 {
                     propValue = pValue;
                 }
-            }
 
-            return isGenericDictionary;
+                return true;
+            }            
+            return false;
         }
 
         private bool TryGetAsIndexedGenericListOrArray(Type destinationType, string propertyName, out object propValue)
-        {
-            propValue = null;
-            Type genericListItemType;
-            bool isGenericList = IsGenericListOrArray(destinationType, out genericListItemType);
-            if (isGenericList)
+        {            
+            Type genericListItemType;            
+            if (IsGenericEnumerable(destinationType, out genericListItemType))
             {
                 var items = GetIndexedListItems(propertyName, genericListItemType);
                 propValue =  MakeList(genericListItemType, destinationType, items, propertyName);
+                return true;
             }
 
-            return isGenericList;
+            propValue = null;
+            return false;
         }
 
         private object MakeList(Type genericListItemType, Type destinationType, List<object> listItems, string propertyName)
@@ -313,7 +312,7 @@ namespace MultipartDataMediaFormatter.Converters
 
         private bool IsGenericDictionary(Type type, out Type keyType, out Type valueType)
         {
-            Type iDictType = type.GetInterface(typeof (IDictionary<,>).Name);
+            var iDictType = GetGenericType(type, typeof(IDictionary<,>));
             if (iDictType != null)
             {
                 var types = iDictType.GetGenericArguments();
@@ -330,20 +329,15 @@ namespace MultipartDataMediaFormatter.Converters
             return false;
         }
 
-        private bool IsGenericListOrArray(Type type, out Type itemType)
+        private bool IsGenericEnumerable(Type type, out Type itemType)
         {
-            if (type.GetInterface(typeof(IDictionary<,>).Name) == null) //not a dictionary
+            if (GetGenericType(type, typeof(IDictionary<,>)) == null //not a dictionary
+                && !type.Equals(typeof(string))) //not a string
             {
-                if (type.IsArray)
+                var enumerType = GetGenericType(type, typeof(IEnumerable<>));
+                if (enumerType != null) 
                 {
-                    itemType = type.GetElementType();
-                    return true;
-                }
-
-                Type iListType = type.GetInterface(typeof(ICollection<>).Name);
-                if (iListType != null) 
-                {
-                    Type[] genericArguments = iListType.GetGenericArguments();
+                    Type[] genericArguments = enumerType.GetGenericArguments();
                     if (genericArguments.Length == 1)
                     {
                         itemType = genericArguments[0];
@@ -354,6 +348,13 @@ namespace MultipartDataMediaFormatter.Converters
           
             itemType = null;
             return false;
+        }
+
+        private Type GetGenericType(Type type, Type genericTypeDefinition)
+        {            
+            return type.IsGenericType && genericTypeDefinition.Equals(type.GetGenericTypeDefinition())
+                ? type
+                : type.GetInterface(genericTypeDefinition.Name);
         }
 
         private bool IsFileOrConvertableFromString(Type type)
