@@ -122,6 +122,10 @@ Client http form keys:
 
 ## History
 
+##### Version 2.0.2 (2018-06-09)
+
+* signed the project with a strong name (without password) to allow referencing this project in projects that were signed with a strong name
+
 ##### Version 2.0.1 (2018-02-14)
 
 * added possibility of using IEnumerable<> and IDictionary<,> as types for model's properties, for example: ``` public IEnumerable<PersonModel> Persons {get;set;}```
