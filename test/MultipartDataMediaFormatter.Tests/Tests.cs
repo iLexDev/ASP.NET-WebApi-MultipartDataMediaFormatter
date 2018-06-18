@@ -17,7 +17,7 @@ namespace MultipartDataMediaFormatter.Tests
     [TestClass]
     public class Tests
     {
-        private const string BaseApiAddress = "http://localhost:8080";
+        private string BaseApiAddress;
 
         [TestInitialize]
         public void TestInit()
@@ -26,6 +26,8 @@ namespace MultipartDataMediaFormatter.Tests
             var enCulture = CultureInfo.GetCultureInfo("en-US");
             CultureInfo.DefaultThreadCurrentUICulture = enCulture;
             CultureInfo.DefaultThreadCurrentCulture = enCulture;
+
+            BaseApiAddress = FindBaseApiAddress(8080);
         }
 
         [TestMethod]
@@ -433,6 +435,29 @@ namespace MultipartDataMediaFormatter.Tests
                 BaseAddress = new Uri(baseUrl)
             };
             return client;
+        }
+
+        private string FindBaseApiAddress(int port)
+        {
+            for (;port < port + 1000; port++)
+            {
+                try
+                {
+                    var url = "http://localhost:" + port;
+                    var mediaTypeFormatter = GetFormatter();
+
+                    using (new WebApiHttpServer(url, mediaTypeFormatter))
+                    {
+                        return url;
+                    }
+                }
+                catch
+                {
+                    // continue
+                }
+            }
+
+            throw new ArgumentException("unable to find open port", nameof(port));
         }
     }
 }
