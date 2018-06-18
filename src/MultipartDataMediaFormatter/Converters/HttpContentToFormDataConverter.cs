@@ -47,7 +47,7 @@ namespace MultipartDataMediaFormatter.Converters
                 using (var stream = await file.ReadAsStreamAsync())
                 {
                     byte[] buffer = ReadAllBytes(stream);
-                    if (buffer.Length > 0)
+                    if (buffer.Length >= 0)
                     {
                         multipartFormData.Add(name, new HttpFile(fileName, mediaType, buffer));
                     }
