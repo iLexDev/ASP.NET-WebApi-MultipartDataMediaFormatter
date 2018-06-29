@@ -61,6 +61,12 @@ namespace MultipartDataMediaFormatter.Tests
         }
 
         [TestMethod]
+        public void TestEmptyFilePost()
+        {
+            TestPost(new HttpFile("testImage.png", "images/png", new byte[] { }), "TestApi/PostFile");
+        }
+
+        [TestMethod]
         public void TestFilePostAndApiActionBindAsRawFormData()
         {
             TestPost(PrepareFileModel(), "TestApi/PostFileBindRawFormData");
