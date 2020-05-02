@@ -42,7 +42,7 @@ namespace MultipartDataMediaFormatter.Converters
             {
                 var name = UnquoteToken(file.Headers.ContentDisposition.Name);
                 string fileName = FixFilename(file.Headers.ContentDisposition.FileName);
-                string mediaType = file.Headers.ContentType.MediaType;
+                string mediaType = file.Headers.ContentType?.MediaType;
 
                 using (var stream = await file.ReadAsStreamAsync())
                 {
