@@ -7,20 +7,17 @@ using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
 using KellermanSoftware.CompareNetObjects;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MultipartDataMediaFormatter.Infrastructure;
 using MultipartDataMediaFormatter.Tests.Infrastructure;
 using MultipartDataMediaFormatter.Tests.Models;
+using Xunit;
+using Xunit.Sdk;
 
 namespace MultipartDataMediaFormatter.Tests
 {
-    [TestClass]
     public class Tests
     {
-        private const string BaseApiAddress = "http://localhost:8080";
-
-        [TestInitialize]
-        public void TestInit()
+        public Tests()
         {
             //need for correct comparing validation messages
             var enCulture = CultureInfo.GetCultureInfo("en-US");
@@ -28,71 +25,71 @@ namespace MultipartDataMediaFormatter.Tests
             CultureInfo.DefaultThreadCurrentCulture = enCulture;
         }
 
-        [TestMethod]
+        [Fact]
         public void TestComplexModelPost()
         {
             TestPost(PreparePersonModel(), "TestApi/PostPerson");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestModelWithoutPropertiesPost()
         {
             var personModel = new EmptyModel();
             TestPost(personModel, "TestApi/PostEmptyModel", "Cannot convert data to multipart/form-data format. No data found.");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestComplexModelWithValidationErrorsPost()
         {
             TestPost(PreparePersonModelWithValidationErrors(), "TestApi/PostPerson",
                 "model.LastName: The LastName field is required. model.Photo: The Photo field is required. model.SomeGenericProperty.GenericValue: The GenericValue field is required.");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestComplexModelPostAndApiActionBindAsRawFormData()
         {
             TestPost(PreparePersonModel(), "TestApi/PostPersonBindRawFormData");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestFilePost()
         {
             TestPost(PrepareFileModel(), "TestApi/PostFile");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestEmptyFilePost()
         {
             TestPost(new HttpFile("testImage.png", "images/png", new byte[] { }), "TestApi/PostFile");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestFilePostAndApiActionBindAsRawFormData()
         {
             TestPost(PrepareFileModel(), "TestApi/PostFileBindRawFormData");
         }
 
 
-        [TestMethod]
+        [Fact]
         public void TestStringPost()
         {
             TestPost(PrepareStringModel(), "TestApi/PostString");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestStringPostAndApiActionBindAsRawFormData()
         {
             TestPost(PrepareStringModel(), "TestApi/PostStringBindRawFormData");
         }
 
 
-        [TestMethod]
+        [Fact]
         public void TestFormDataPost()
         {
             TestPost(PrepareFormDataModel(), "TestApi/PostFormData");
         }
 
-        [TestMethod]
+        [Fact]
         public void TestPostWithoutFormatter()
         {
             PersonModel model;
@@ -100,12 +97,12 @@ namespace MultipartDataMediaFormatter.Tests
 
             var result = PostPersonModelHttpContent(httpContent);
 
-            Assert.AreEqual("model.PersonId: The value is required. model.CreatedDateTime: The value is required.", result.ErrorMessage);
+            Assert.Equal("model.PersonId: The value is required. model.CreatedDateTime: The value is required.", result.ErrorMessage);
 
             AssertModelsEquals(model, result.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestPostWithoutFormatterNotNullableValidationNotRequired()
         {
             PersonModel model;
@@ -120,12 +117,12 @@ namespace MultipartDataMediaFormatter.Tests
 
             var result = PostPersonModelHttpContent(httpContent, formatter);
 
-            Assert.AreEqual(null, result.ErrorMessage);
+            Assert.Null(result.ErrorMessage);
 
             AssertModelsEquals(model, result.Value);
         }
 
-        [TestMethod]
+        [Fact]
         public void TestPostWithoutFormatterSerializeByteArrayAsIndexedArray()
         {
             PersonModel model;
@@ -140,12 +137,12 @@ namespace MultipartDataMediaFormatter.Tests
 
             var result = PostPersonModelHttpContent(httpContent, formatter);
 
-            Assert.AreEqual(null, result.ErrorMessage);
+            Assert.Null(result.ErrorMessage);
 
             AssertModelsEquals(model, result.Value);
         }
 
-        private ApiResult<T> TestPost<T>(T model, string url, string errorMessage = null)
+        private void TestPost<T>(T model, string url, string errorMessage = null)
         {
             ApiResult<T> result = null;
             try
@@ -164,31 +161,29 @@ namespace MultipartDataMediaFormatter.Tests
             {
                 if (String.IsNullOrWhiteSpace(errorMessage))
                 {
-                    Assert.IsTrue(String.IsNullOrWhiteSpace(result.ErrorMessage), result.ErrorMessage);
+                    Assert.True(String.IsNullOrWhiteSpace(result.ErrorMessage), result.ErrorMessage);
                     AssertModelsEquals(model, result.Value);
                 }
                 else
                 {
-                    Assert.AreEqual(errorMessage, result.ErrorMessage, "Invalid ErrorMessage");
+                    Assert.True(errorMessage == result.ErrorMessage, "Invalid ErrorMessage");
                 }
             }
-
-            return result;
         }
 
         private void AssertModelsEquals(object originalModel, object returnedModel)
         {
             var compareObjects = new CompareLogic(new ComparisonConfig() {MaxDifferences = 10 });
             var comparisonResult = compareObjects.Compare(originalModel, returnedModel);
-            Assert.IsTrue(comparisonResult.AreEqual, "Source model is not the same as returned model. {0}", comparisonResult.DifferencesString);
+            Assert.True(comparisonResult.AreEqual, $"Source model is not the same as returned model. {comparisonResult.DifferencesString}");
         }
 
         private ApiResult<T> PostModel<T>(T model, string url)
         {
             var mediaTypeFormatter = GetFormatter();
 
-            using (new WebApiHttpServer(BaseApiAddress, mediaTypeFormatter))
-            using (var client = CreateHttpClient(BaseApiAddress))
+            using(var server = new WebApiHttpServer(mediaTypeFormatter)) 
+            using(var client = server.CreateClient())
             using (HttpResponseMessage response = client.PostAsync(url, model, mediaTypeFormatter).Result)
             {
                 ApiResult<T> resultModel;
@@ -199,7 +194,7 @@ namespace MultipartDataMediaFormatter.Tests
                     if (String.IsNullOrWhiteSpace(err))
                     {
                         var responseContent = response.Content.ReadAsStringAsync().Result;
-                        Assert.Fail(responseContent);
+                        throw new XunitException(responseContent);
                     }
                     resultModel = new ApiResult<T>()
                     {
@@ -218,14 +213,14 @@ namespace MultipartDataMediaFormatter.Tests
         {
             mediaTypeFormatter = mediaTypeFormatter ?? GetFormatter();
 
-            using (new WebApiHttpServer(BaseApiAddress, mediaTypeFormatter))
-            using (var client = CreateHttpClient(BaseApiAddress))
+            using (var server = new WebApiHttpServer(mediaTypeFormatter))
+            using (var client = server.CreateClient())
             using (HttpResponseMessage response = client.PostAsync("TestApi/PostPerson", httpContent).Result)
             {
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
                     var err = response.Content.ReadAsStringAsync().Result;
-                    Assert.Fail(err);
+                    throw new XunitException(err);
                 }
                 var resultModel = response.Content.ReadAsAsync<ApiResult<PersonModel>>(new[] { mediaTypeFormatter }).Result;
                 return resultModel;
@@ -431,14 +426,6 @@ namespace MultipartDataMediaFormatter.Tests
                 CultureInfo = CultureInfo.CurrentCulture,
                 ValidateNonNullableMissedProperty = true
             });
-        }
-        private HttpClient CreateHttpClient(string baseUrl)
-        {
-            var client = new HttpClient()
-            {
-                BaseAddress = new Uri(baseUrl)
-            };
-            return client;
         }
     }
 }

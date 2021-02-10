@@ -122,6 +122,11 @@ Client http form keys:
 
 ## History
 
+##### Version 2.1.0 (2021-02-14)
+
+* add support of netstandard2.0
+* use ```Microsoft.Owin.Testing.TestServer``` instead of ```System.Web.Http.SelfHost.HttpSelfHostServer``` in test project to avoid running Visual Studio under administrator rights (for correct test completion)
+
 ##### Version 2.0.3 (2020-05-29)
 
 * permit zero byte / empty files; allow file mediaType to be null
@@ -154,10 +159,6 @@ Client http form keys:
 
 ##### Version 1.0 (2013-11-22)
 * First release
-
-## Notes
-
-For successfully running tests from the test project you should run Visual Studio with administrator rights because of using Self Hosted WebApi Server ```System.Web.Http.SelfHost.HttpSelfHostServer```
 
 ## License
 

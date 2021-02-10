@@ -179,6 +179,4 @@ Desktop.ini
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 *.testlog
-/.vs/MultipartDataMediaFormatter/v16/TestStore/0/testlog.manifest
-/.vs/slnx.sqlite
-/.vs/VSWorkspaceState.json
+.vs/

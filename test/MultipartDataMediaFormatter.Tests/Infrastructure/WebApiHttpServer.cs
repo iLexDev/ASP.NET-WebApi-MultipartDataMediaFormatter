@@ -1,35 +1,41 @@
 ﻿using System;
+using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Web.Http;
-using System.Web.Http.SelfHost;
+using Microsoft.Owin.Testing;
+using Owin;
 
 namespace MultipartDataMediaFormatter.Tests.Infrastructure
 {
     public class WebApiHttpServer : IDisposable
     {
-        private HttpSelfHostServer Server;
+        private readonly TestServer Server;
 
-        public WebApiHttpServer(string serverUrl, MediaTypeFormatter formatter)
+        public WebApiHttpServer(MediaTypeFormatter formatter)
         {
-            var config = new HttpSelfHostConfiguration(serverUrl);
-            config.Formatters.Clear();
-            config.Formatters.Add(formatter);
-            config.Routes.MapHttpRoute(
-                "API Default", "{controller}/{action}",
-                new { id = RouteParameter.Optional });
+            Server = TestServer.Create(builder =>
+            {
+                var config = new HttpConfiguration();
 
-            Server = new HttpSelfHostServer(config);
-            Server.OpenAsync().Wait();
+                config.Formatters.Clear();
+                config.Formatters.Add(formatter);
+                config.Routes.MapHttpRoute(
+                    "API Default", "{controller}/{action}",
+                    new { id = RouteParameter.Optional });
+                
+                builder.UseWebApi(config);
+            });
         }
+
+        public HttpClient CreateClient()
+        {
+            return Server.HttpClient;
+        }
+
 
         public void Dispose()
         {
-            if (Server != null)
-            {
-                Server.CloseAsync().Wait();
-                Server.Dispose();
-                Server = null;
-            }
+            Server.Dispose();
         }
     }
 }

@@ -11,7 +11,7 @@ namespace MultipartDataMediaFormatter.Tests.Controllers
 {
     public class TestApiController : ApiController
     {
-        private MultipartFormatterSettings Settings = new MultipartFormatterSettings()
+        private readonly MultipartFormatterSettings Settings = new MultipartFormatterSettings()
         {
             SerializeByteArrayAsHttpFile = true,
             CultureInfo = CultureInfo.GetCultureInfo("en-US"),
