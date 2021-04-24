@@ -122,6 +122,10 @@ Client http form keys:
 
 ## History
 
+##### Version 2.1.1 (2021-04-24)
+
+* add support of form data square notation (keys like model[property])
+
 ##### Version 2.1.0 (2021-02-14)
 
 * add support of netstandard2.0

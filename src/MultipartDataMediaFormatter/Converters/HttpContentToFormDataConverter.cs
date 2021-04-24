@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MultipartDataMediaFormatter.Infrastructure;
@@ -40,7 +41,7 @@ namespace MultipartDataMediaFormatter.Converters
 
             foreach (var file in multipartProvider.Contents.Where(x => IsFile(x.Headers.ContentDisposition)))
             {
-                var name = UnquoteToken(file.Headers.ContentDisposition.Name);
+                var name = FixName(file.Headers.ContentDisposition.Name);
                 string fileName = FixFilename(file.Headers.ContentDisposition.FileName);
                 string mediaType = file.Headers.ContentType?.MediaType;
 
@@ -57,7 +58,7 @@ namespace MultipartDataMediaFormatter.Converters
             foreach (var part in multipartProvider.Contents.Where(x => x.Headers.ContentDisposition.DispositionType == "form-data"
                                                                   && !IsFile(x.Headers.ContentDisposition)))
             {
-                var name = UnquoteToken(part.Headers.ContentDisposition.Name);
+                var name = FixName(part.Headers.ContentDisposition.Name);
                 var data = await part.ReadAsStringAsync();
                 multipartFormData.Add(name, data);
             }
@@ -68,6 +69,12 @@ namespace MultipartDataMediaFormatter.Converters
         private bool IsFile(ContentDispositionHeaderValue disposition)
         {
             return !string.IsNullOrEmpty(disposition.FileName);
+        }
+
+        private static string FixName(string token)
+        {
+            var res = UnquoteToken(token);
+            return NormalizeJQueryToMvc(res);
         }
 
         /// <summary>
@@ -86,6 +93,66 @@ namespace MultipartDataMediaFormatter.Converters
             }
 
             return token;
+        }
+
+        // This is a helper method to use Model Binding over a JQuery syntax. 
+        // Normalize from JQuery to MVC keys. The model binding infrastructure uses MVC keys
+        // x[] --> x
+        // [] --> ""
+        // x[field]  --> x.field, where field is not a number
+        private static string NormalizeJQueryToMvc(string key)
+        {
+            if (key == null)
+            {
+                return string.Empty;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            int i = 0;
+            while (true)
+            {
+                int indexOpen = key.IndexOf('[', i);
+                if (indexOpen < 0)
+                {
+                    sb.Append(key, i, key.Length - i);
+                    break; // no more brackets
+                }
+
+                sb.Append(key, i, indexOpen - i); // everything up to "["
+
+                // Find closing bracket.
+                int indexClose = key.IndexOf(']', indexOpen);
+                if (indexClose == -1)
+                {
+                    throw new Exception($"Error find closing bracket in key \"{key}\"");
+                }
+
+                if (indexClose == indexOpen + 1)
+                {
+                    // Empty bracket. Signifies array. Just remove. 
+                }
+                else
+                {
+                    if (char.IsDigit(key[indexOpen + 1]))
+                    {
+                        // array index. Leave unchanged. 
+                        sb.Append(key, indexOpen, indexClose - indexOpen + 1);
+                    }
+                    else
+                    {
+                        // Field name.  Convert to dot notation. 
+                        sb.Append('.');
+                        sb.Append(key, indexOpen + 1, indexClose - indexOpen - 1);
+                    }
+                }
+
+                i = indexClose + 1;
+                if (i >= key.Length)
+                {
+                    break; // end of string
+                }
+            }
+            return sb.ToString();
         }
 
         /// <summary>

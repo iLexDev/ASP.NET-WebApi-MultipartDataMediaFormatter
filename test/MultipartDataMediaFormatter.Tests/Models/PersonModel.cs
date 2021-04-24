@@ -52,6 +52,7 @@ namespace MultipartDataMediaFormatter.Tests.Models
         public List<PersonModel> ConnectedPersons { get; set; }
 
         public IEnumerable<PersonModel> PersonsCollection { get; set; }
+        public PersonProperty SomeProperty { get; set; }
     }
 
     public class PersonProperty

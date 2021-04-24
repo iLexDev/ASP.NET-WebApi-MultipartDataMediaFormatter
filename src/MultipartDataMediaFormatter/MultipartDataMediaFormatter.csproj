@@ -10,8 +10,8 @@
 		    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
         <PackageTags>Asp.Net WebApi web api MediaFormatters MultipartData Multipart MultipartFormData multipart/form-data</PackageTags>
         <DebugType>embedded</DebugType>
-        <Version>2.1.0.0</Version>
-        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <Version>2.1.1.0</Version>
+        <AssemblyVersion>2.1.1.0</AssemblyVersion>
         <Title>ASP.NET WebApi MultipartDataMediaFormatter</Title>
         <Product>ASP.NET WebApi MultipartDataMediaFormatter</Product>
         <Description>A library for binding custom types (including files) when sending and receiving multipart encoded form data</Description>
@@ -24,7 +24,7 @@
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
-      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>
       <None Include="licenses\LICENSE.txt">

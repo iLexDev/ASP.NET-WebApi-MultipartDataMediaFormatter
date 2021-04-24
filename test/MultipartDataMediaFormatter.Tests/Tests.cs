@@ -372,6 +372,12 @@ namespace MultipartDataMediaFormatter.Tests
                 {
                     new HttpFile("file1.tt", "text/plain", new byte[] { 1,3,5 }),
                     new HttpFile("file2.cf", "text/plain", new byte[] { 4,2,5 })
+                }, 
+                SomeProperty = new PersonProperty()
+                {
+                    PropertyName = "PROP",
+                    PropertyCode = 10,
+                    Bytes = new byte[] { 1, 2 }
                 }
             };
 
@@ -381,6 +387,14 @@ namespace MultipartDataMediaFormatter.Tests
             httpContent.Add(new StringContent(personModel.FirstName), "FirstName");
             httpContent.Add(new StringContent(personModel.ActivityProgress == null ? "undefined" : personModel.ActivityProgress.ToString()), "ActivityProgress");
             httpContent.Add(new StringContent(personModel.IsActive ? "on" : "off"), "IsActive");
+
+
+            httpContent.Add(new StringContent(personModel.SomeProperty.PropertyName), "SomeProperty[PropertyName]");
+            httpContent.Add(new StringContent(personModel.SomeProperty.PropertyCode.ToString()), "SomeProperty[PropertyCode]");
+            for (int i = 0; i < personModel.SomeProperty.Bytes.Length; i++)
+            {
+                httpContent.Add(new StringContent(personModel.SomeProperty.Bytes[i].ToString()), $"SomeProperty[Bytes][{i}]");
+            }
 
             foreach (var year in personModel.Years)
             {
