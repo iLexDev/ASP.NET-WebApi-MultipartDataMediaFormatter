@@ -294,6 +294,9 @@ namespace MultipartDataMediaFormatter.Converters
             bool isCustomNonEnumerableType = destinationType.IsCustomNonEnumerableType();
             if (isCustomNonEnumerableType && IsRootPropertyOrAnyChildPropertiesExistsInFormData(propertyName))
             {
+                string prefix = destinationType.GetCustomAttribute<BindAttribute>()?.Prefix;
+                propertyName = String.IsNullOrEmpty(prefix) ? propertyName : prefix;
+                
                 propValue = Activator.CreateInstance(destinationType);
                 foreach (PropertyInfo propertyInfo in destinationType.GetProperties().Where(m => m.SetMethod != null))
                 {
