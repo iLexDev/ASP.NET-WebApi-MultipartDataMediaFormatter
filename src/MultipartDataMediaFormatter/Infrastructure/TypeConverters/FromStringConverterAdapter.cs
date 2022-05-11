@@ -4,13 +4,14 @@ using System.Globalization;
 
 namespace MultipartDataMediaFormatter.Infrastructure.TypeConverters
 {
-    public class FromStringConverterAdapter
+    public class FromStringOrValueStringConverterAdapter
     {
         private readonly Type Type;
         private readonly TypeConverter TypeConverter;
-        public FromStringConverterAdapter(Type type, TypeConverter typeConverter)
+
+        public FromStringOrValueStringConverterAdapter(Type type, TypeConverter typeConverter)
         {
-            if(type == null)
+            if (type == null)
                 throw new ArgumentNullException("type");
             if (typeConverter == null)
                 throw new ArgumentNullException("typeConverter");
@@ -26,6 +27,15 @@ namespace MultipartDataMediaFormatter.Infrastructure.TypeConverters
                 return null;
 
             return TypeConverter.ConvertFromString(null, culture, src);
+        }
+
+        public object ConvertFromValueString(FormData.ValueString[] src, CultureInfo culture)
+        {
+            var isUndefinedNullable = Nullable.GetUnderlyingType(Type) != null;
+            if (isUndefinedNullable)
+                return null;
+
+            return TypeConverter.ConvertFrom(null, culture, src);
         }
     }
 }
