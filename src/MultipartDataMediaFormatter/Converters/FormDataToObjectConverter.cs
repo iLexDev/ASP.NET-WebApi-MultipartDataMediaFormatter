@@ -290,12 +290,36 @@ namespace MultipartDataMediaFormatter.Converters
 
         private bool TryGetAsCustomType(Type destinationType, string propertyName, out object propValue)
         {
+            var realDestinationType = destinationType;
+            
             propValue = null;
             bool isCustomNonEnumerableType = destinationType.IsCustomNonEnumerableType();
             if (isCustomNonEnumerableType && IsRootPropertyOrAnyChildPropertiesExistsInFormData(propertyName))
             {
-                propValue = Activator.CreateInstance(destinationType);
-                foreach (PropertyInfo propertyInfo in destinationType.GetProperties().Where(m => m.SetMethod != null))
+                propValue = null;
+                var typeConverter = destinationType.GetFromValueStringConverter();
+
+                if (typeConverter == null)
+                {
+                    propValue = Activator.CreateInstance(destinationType);
+                }
+                else
+                {
+                    try
+                    {
+                        var prefixWithDot = propertyName + ".";
+                        var values = SourceData.Fields.Where(_ => _.Name.StartsWith(prefixWithDot, true, Settings.CultureInfo)).ToArray();
+                        propValue = typeConverter.ConvertFromValueString(values, Settings.CultureInfo);
+                        realDestinationType = propValue.GetType();
+                    }
+
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(propertyName, String.Format("Error parsing field \"{0}\": {1}", propertyName, ex.Message));
+                    }
+                }
+                
+                foreach (PropertyInfo propertyInfo in realDestinationType.GetProperties().Where(m => m.SetMethod != null))
                 {
                     var propName = (!String.IsNullOrEmpty(propertyName) ? propertyName + "." : "") + propertyInfo.Name;
 
