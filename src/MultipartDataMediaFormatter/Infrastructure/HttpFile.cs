@@ -1,4 +1,6 @@
-﻿namespace MultipartDataMediaFormatter.Infrastructure
+﻿using System.IO;
+
+namespace MultipartDataMediaFormatter.Infrastructure
 {
     public class HttpFile
     {
@@ -13,6 +15,21 @@
             FileName = fileName;
             MediaType = mediaType;
             Buffer = buffer;
+        }
+        
+        public void SaveAs(string fileName)
+        {
+            var fileStream = new FileStream(fileName, FileMode.Create);
+            try
+            {
+                fileStream.Write(Buffer, 0, Buffer.Length);
+                fileStream.Flush();
+            }
+
+            finally
+            {
+                fileStream.Close();
+            }
         }
     }
 }
