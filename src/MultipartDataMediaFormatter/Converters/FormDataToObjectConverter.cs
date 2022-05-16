@@ -14,7 +14,8 @@ namespace MultipartDataMediaFormatter.Converters
         private readonly IFormDataConverterLogger Logger;
         private readonly MultipartFormatterSettings Settings;
 
-        public FormDataToObjectConverter(FormData sourceData, IFormDataConverterLogger logger, MultipartFormatterSettings settings) 
+        public FormDataToObjectConverter(FormData sourceData, IFormDataConverterLogger logger,
+            MultipartFormatterSettings settings)
         {
             if (sourceData == null)
                 throw new ArgumentNullException("sourceData");
@@ -28,7 +29,7 @@ namespace MultipartDataMediaFormatter.Converters
             Logger = logger;
         }
 
-        public object Convert(Type destinationType) 
+        public object Convert(Type destinationType)
         {
             if (destinationType == null)
                 throw new ArgumentNullException("destinationType");
@@ -38,7 +39,7 @@ namespace MultipartDataMediaFormatter.Converters
 
             var objResult = CreateObject(destinationType);
             return objResult;
-        } 
+        }
 
         private object CreateObject(Type destinationType, string propertyName = "")
         {
@@ -59,7 +60,7 @@ namespace MultipartDataMediaFormatter.Converters
                 propValue = buf;
             }
             else if (IsNotNullableValueType(destinationType)
-                && IsNeedValidateMissedProperty(propertyName))
+                     && IsNeedValidateMissedProperty(propertyName))
             {
                 Logger.LogError(propertyName, "The value is required.");
             }
@@ -75,7 +76,7 @@ namespace MultipartDataMediaFormatter.Converters
         {
             propValue = null;
 
-            Type genericListItemType;            
+            Type genericListItemType;
             if (IsGenericEnumerable(destinationType, out genericListItemType))
             {
                 var items = GetNotIndexedListItems(propertyName, genericListItemType);
@@ -105,6 +106,7 @@ namespace MultipartDataMediaFormatter.Converters
                 propValue = values.FirstOrDefault();
                 return true;
             }
+
             return false;
         }
 
@@ -142,7 +144,7 @@ namespace MultipartDataMediaFormatter.Converters
                     foreach (var value in values)
                     {
                         object val;
-                        if(TryConvertFromString(destinationType, propertyName, value, out val))
+                        if (TryConvertFromString(destinationType, propertyName, value, out val))
                         {
                             propValue.Add(val);
                         }
@@ -170,16 +172,18 @@ namespace MultipartDataMediaFormatter.Converters
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(propertyName, String.Format("Error parsing field \"{0}\": {1}", propertyName, ex.Message));
+                    Logger.LogError(propertyName,
+                        String.Format("Error parsing field \"{0}\": {1}", propertyName, ex.Message));
                 }
             }
+
             return false;
         }
 
         private bool TryGetAsGenericDictionary(Type destinationType, string propertyName, out object propValue)
         {
             propValue = null;
-            Type keyType, valueType;            
+            Type keyType, valueType;
             if (IsGenericDictionary(destinationType, out keyType, out valueType))
             {
                 var dictType = typeof(Dictionary<,>).MakeGenericType(new[] { keyType, valueType });
@@ -209,6 +213,7 @@ namespace MultipartDataMediaFormatter.Converters
                     {
                         break;
                     }
+
                     index++;
                 }
 
@@ -218,17 +223,18 @@ namespace MultipartDataMediaFormatter.Converters
                 }
 
                 return true;
-            }            
+            }
+
             return false;
         }
 
         private bool TryGetAsIndexedGenericListOrArray(Type destinationType, string propertyName, out object propValue)
-        {            
-            Type genericListItemType;            
+        {
+            Type genericListItemType;
             if (IsGenericEnumerable(destinationType, out genericListItemType))
             {
                 var items = GetIndexedListItems(propertyName, genericListItemType);
-                propValue =  MakeList(genericListItemType, destinationType, items, propertyName);
+                propValue = MakeList(genericListItemType, destinationType, items, propertyName);
                 return true;
             }
 
@@ -236,7 +242,8 @@ namespace MultipartDataMediaFormatter.Converters
             return false;
         }
 
-        private object MakeList(Type genericListItemType, Type destinationType, List<object> listItems, string propertyName)
+        private object MakeList(Type genericListItemType, Type destinationType, List<object> listItems,
+            string propertyName)
         {
             object result = null;
 
@@ -285,17 +292,45 @@ namespace MultipartDataMediaFormatter.Converters
 
                 index++;
             }
+
             return res;
         }
 
         private bool TryGetAsCustomType(Type destinationType, string propertyName, out object propValue)
         {
+            var realDestinationType = destinationType;
+
             propValue = null;
             bool isCustomNonEnumerableType = destinationType.IsCustomNonEnumerableType();
             if (isCustomNonEnumerableType && IsRootPropertyOrAnyChildPropertiesExistsInFormData(propertyName))
             {
-                propValue = Activator.CreateInstance(destinationType);
-                foreach (PropertyInfo propertyInfo in destinationType.GetProperties().Where(m => m.SetMethod != null))
+                propValue = null;
+                var typeConverter = destinationType.GetFromValueStringConverter();
+
+                if (typeConverter == null)
+                {
+                    propValue = Activator.CreateInstance(destinationType);
+                }
+                else
+                {
+                    try
+                    {
+                        var prefixWithDot = propertyName + ".";
+                        var values = SourceData.Fields
+                            .Where(_ => _.Name.StartsWith(prefixWithDot, true, Settings.CultureInfo)).ToArray();
+                        propValue = typeConverter.ConvertFromValueString(values, Settings.CultureInfo);
+                        realDestinationType = propValue.GetType();
+                    }
+
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(propertyName,
+                            String.Format("Error parsing field \"{0}\": {1}", propertyName, ex.Message));
+                    }
+                }
+
+                foreach (PropertyInfo propertyInfo in realDestinationType.GetProperties()
+                             .Where(m => m.SetMethod != null))
                 {
                     var propName = (!String.IsNullOrEmpty(propertyName) ? propertyName + "." : "") + propertyInfo.Name;
 
@@ -306,9 +341,9 @@ namespace MultipartDataMediaFormatter.Converters
                     }
                 }
             }
+
             return isCustomNonEnumerableType;
         }
-
 
         private bool IsGenericDictionary(Type type, out Type keyType, out Type valueType)
         {
@@ -335,7 +370,7 @@ namespace MultipartDataMediaFormatter.Converters
                 && !type.Equals(typeof(string))) //not a string
             {
                 var enumerType = GetGenericType(type, typeof(IEnumerable<>));
-                if (enumerType != null) 
+                if (enumerType != null)
                 {
                     Type[] genericArguments = enumerType.GetGenericArguments();
                     if (genericArguments.Length == 1)
@@ -345,13 +380,13 @@ namespace MultipartDataMediaFormatter.Converters
                     }
                 }
             }
-          
+
             itemType = null;
             return false;
         }
 
         private Type GetGenericType(Type type, Type genericTypeDefinition)
-        {            
+        {
             return type.IsGenericType && genericTypeDefinition.Equals(type.GetGenericTypeDefinition())
                 ? type
                 : type.GetInterface(genericTypeDefinition.Name);
@@ -359,7 +394,7 @@ namespace MultipartDataMediaFormatter.Converters
 
         private bool IsFileOrConvertableFromString(Type type)
         {
-            if (type == typeof (HttpFile))
+            if (type == typeof(HttpFile))
                 return true;
 
             return type.GetFromStringConverter() != null;
@@ -376,8 +411,8 @@ namespace MultipartDataMediaFormatter.Converters
         private bool IsNeedValidateMissedProperty(string propertyName)
         {
             return Settings.ValidateNonNullableMissedProperty
-                    && !IsIndexedProperty(propertyName)
-                    && IsRootPropertyOrAnyParentsPropertyExistsInFormData(propertyName);
+                   && !IsIndexedProperty(propertyName)
+                   && IsRootPropertyOrAnyParentsPropertyExistsInFormData(propertyName);
         }
 
         private bool IsRootPropertyOrAnyParentsPropertyExistsInFormData(string propertyName)

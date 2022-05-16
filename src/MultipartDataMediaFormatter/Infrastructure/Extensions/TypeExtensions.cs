@@ -7,7 +7,7 @@ namespace MultipartDataMediaFormatter.Infrastructure.Extensions
 {
     internal static class TypeExtensions
     {
-        internal static FromStringConverterAdapter GetFromStringConverter(this Type type)
+        internal static FromStringOrValueStringConverterAdapter GetFromStringConverter(this Type type)
         {
             TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
 
@@ -21,7 +21,7 @@ namespace MultipartDataMediaFormatter.Infrastructure.Extensions
                 typeConverter = null;
             }
 
-            return typeConverter == null ? null : new FromStringConverterAdapter(type, typeConverter);
+            return typeConverter == null ? null : new FromStringOrValueStringConverterAdapter(type, typeConverter);
         }
 
         internal static TypeConverter GetToStringConverter(this Type type)
@@ -38,18 +38,39 @@ namespace MultipartDataMediaFormatter.Infrastructure.Extensions
             }
             return typeConverter;
         }
+        
+        internal static FromStringOrValueStringConverterAdapter GetFromValueStringConverter(this Type type)
+        {
+            TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
+
+            if (typeConverter is BooleanConverter)
+            {
+                //replace default boolean converter for deserializing on/off values received from html page
+                typeConverter = new BooleanConverterEx();
+            }
+
+            if (typeConverter != null && !typeConverter.CanConvertFrom(typeof(FormData.ValueString)))
+            {
+                typeConverter = null;
+            }
+
+            return typeConverter == null ? null : new FromStringOrValueStringConverterAdapter(type, typeConverter);
+        }
 
         internal static bool IsCustomNonEnumerableType(this Type type)
         {
             var nullType = Nullable.GetUnderlyingType(type);
+
             if (nullType != null)
             {
                 type = nullType;
             }
+
             if (type.IsGenericType)
             {
                 type = type.GetGenericTypeDefinition();
             }
+
             return type != typeof(object)
                    && Type.GetTypeCode(type) == TypeCode.Object
                    && type != typeof(HttpFile)
